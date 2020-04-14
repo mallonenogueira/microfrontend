@@ -13,10 +13,14 @@ async function runNpm(dir) {
     );
   });
 
-  if (!readdirSync(dir).includes("node_modules")) {
-    npm.commands.install([], () => npm.run("start"));
-  } else {
+  if(!readdirSync(dir).includes("package.json")) {
+    return;
+  }
+
+  if (readdirSync(dir).includes("node_modules")) {
     npm.run("start");
+  } else {
+    npm.commands.install([], () => npm.run("start"));
   }
 }
 
