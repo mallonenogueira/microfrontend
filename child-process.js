@@ -1,26 +1,38 @@
 const { readdirSync } = require("fs");
 const npm = require("npm");
 
+const promisify = (callback) => {
+  return (...params) => new Promise((resolve) => callback(...params, resolve));
+};
+
+const npmPromise = {
+  async load(...params) {
+    await promisify(npm.load)(...params);
+
+    this.install = promisify(npm.commands.install);
+    this.start = promisify(npm.commands.start);
+  },
+};
+
 async function runNpm(dir) {
   process.chdir(dir);
 
-  await new Promise((resolve) => {
-    npm.load(
-      {
-        loaded: false,
-      },
-      resolve
-    );
-  });
+  try {
+    await npmPromise.load({ loaded: false });
 
-  if(!readdirSync(dir).includes("package.json")) {
-    return;
-  }
+    const files = readdirSync(dir);
 
-  if (readdirSync(dir).includes("node_modules")) {
-    npm.run("start");
-  } else {
-    npm.commands.install([], () => npm.run("start"));
+    if (!files || !files.includes("package.json")) {
+      return;
+    }
+
+    if (!files.includes("node_modules")) {
+      await npmPromise.install();
+    }
+
+    await npmPromise.start();
+  } catch (err) {
+    console.error(err.message);
   }
 }
 
